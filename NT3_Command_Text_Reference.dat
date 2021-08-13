@@ -1,0 +1,501 @@
+
+
+	 --=============================================--
+	--==     NeuroTox.3 Command Text Reference     ==--
+	 --=============================================--
+	 
+	 -Input Syntax:
+	 
+		~Special characters can be preceded by ^ to allow them to be read into string tokens. Used for 
+	  variables.
+		~Surrounding a sequence of characters with quotation marks allows for entry of lines ignoring
+	  whitspace and special characters. For example, the string "can't do it man" would be one token.
+	 
+	 -Variables:
+	 
+		The syntax for a variable resembles batch, the variable name is enclosed in '%' characters. Variables 
+	  are created when encountered, which can lead to problems as they may not yet be set. The command parser
+	  first checks the command string for any variables and replaces them with the contained data. This means
+	  that the variables themselves do not make it to the actual evaluation, only their data.
+	 
+	 -Data Types:
+	 
+		string: A string of characters.
+		int: a signed integer.
+		float: a signed float.
+		bool: a bool.
+		
+	 -Assorted Notes:
+	 
+		~The number of tables maxes out at the limits of (int).
+		~Whitespace is ignored and not stored.
+		~The ^ will cause the next character to be ignored.
+		~You can surround text in " to have it treated as a single token (string), "Gib Me Dat" would be one 
+	  token.
+		~Preceding command text with '~' will have it evaluated separately as its own line of Command Text. 
+	  This is used for funtion callbacks. Example, echo "~get_Table_Name(%ID%)".
+		~When a command is preceded by 'b' the command references members by ID rather than Name. Example: 
+	  "get_string Table_Name" uses the string Table_Name for referencing, whereas "bget_string Table_ID" uses
+	  the integer Table_ID for referencing.
+		
+	--==      COMMANDS     ==--
+	
+	-echo [string]
+		
+		Anything after the echo command is displayed in the console. Due to the way the parser works putting 
+	  variables back to back will still have a space injected between them. echo %string0%%string1% would
+	  display as " string0 string1".
+	  
+	-set [/s | /i | /f | /b] [VARIABLE_NAME_NO_PERCENTAGE_SIGNS] [== | += | -= | *= | /=] [DATA_FOR_ASSIGNMENT]
+		
+		The set command allows for setting and modifying variables and their data. Be careful to use only data
+	  that matches the type switch as unpredictable results may result from doing otherwise. The operators 
+	  are not available for all datatypes, for example, /s only allows for = and +=.
+		
+		~Type switches:
+		
+			/s = string operation.
+			/i = integer operation.
+			/f = float operation.
+			/b = bool operation.
+		
+		~Variable name:
+			
+			When performing an operation do not enclose the variable name in percentage signs that is being 
+		  operated on. For example, "set /i Var_Counter = 5" is valid, whereas "set /i %Var_Counter% = 5" will 
+		  actually be evaluated as "set /i CONTENTS_OF_VAR_COUNTER = 5". So if %Var_Counter% has a value of 10
+		  then the variable with the name "10" will be created and its data set to 5.
+		  
+		    This behavior could be exploited to create psuedo pointers, but you are on your own there buddy.
+		
+		~Operators:
+		
+			[OPERATOR] [AVAILABLE TYPES]
+			[=] [string, int, float, bool]
+			[+=] [string, int, float]
+			[-=] [int, float]
+			[*=] [int, float]
+			[/=] [int, float]
+		
+		~Data:
+			
+			The data that will be modifying the variable based on the operator used. Variables with contents
+		  of the appropriate type can be used here as well as straight data. However, only one piece of data
+		  if used, so "set /i Var_Counter = 7 + 3" would assign the 7 and ignore the rest.
+		
+	-Output [table | Var_Lookup_Tree | Label_Lookup_Tree | Table_Registry | Table_Registry_Tree]
+		
+		//Outputs for the tables
+		table [data | verbose | header] [all | Table_Name]
+		
+			//Display format
+			[data]
+			[verbose]
+			[header]
+			
+				//Output all or just one?
+				[all]
+				[Table_Name]
+				
+		//Outputs for the tables by ID instead of name.
+		table [bdata | bverbose | bheader] [all | Table_ID]
+		
+			//Display format
+			[bdata]
+			[bverbose]
+			[bheader]
+			
+				//Output all or just one?
+				[all]
+				[Table_ID]
+	
+		//Example: 
+			output table data all
+			output table data Token_Table
+			output table bdata Token_Table
+			
+		//Outputs the tree holding the registered variables.
+		Var_Lookup_Tree
+		
+		//Outputs the tree holding the registered labels in the command scripts.
+		Label_Lookup_Tree
+		
+		//Outputs the table registry, same as "output table data Table_Registry"
+		Table_Registry
+		
+		//Outputs the registered tables. Same as "output table data Table_Registry"
+		Table_Registry_Tree
+		
+	-if [s | i | f | b] ( [DATA_0] [== | <= | >= | < | >] [DATA_1] ) [COMMAND_TEXT_TO_EVAL_ON_TRUE]
+		
+			Compares DATA_0 and DATA_1 to each other based on the operator given. In the event the condition
+		  proves true the command text is evaluated, otherwise it is discarded. The comparision used the data
+		  type given by [s | i | f | b], string, int, float, bool.
+		  
+	-goto [LABEL]
+	
+			Labels are indicated by setting the first cell in a row to ":LABEL_NAME", the colon is followed by 
+		  a string to indicate a label. When using the goto command you do not include the colon. Example: 
+		  "goto Main" would set the current index being evaluated to the row containing ":Main". Labels are
+		  local to the current command table.
+		  
+	-com [COMPOUND STATEMENT]
+	
+			Evaluates a set of tokens to determine a final value. Eg: "23 + 46", returns 69. This uses implicit 
+		  data conversions, so errors in logic may result, "12 + 34 + five" returns 1234five. Accepts operators
+		  +, -, *, and /. If a string is found next to any operator it defaults to concatination as you cannor
+		  multiply or divide a string. Order of operations is as follows, *, /, +, -.
+		  
+	-gdt [TOKEN]
+	
+			Returns the datatype of the token as a string. Returns are "string", "int", "float".
+	
+	//==--  Table Command
+	
+		~table set_TYPE [Table_Name] [ROW] [CELL] [DATA]
+		~table bset_TYPE [Table_ID] [ROW] [CELL] [DATA]
+			
+			_TYPE = _string, _int, _float, _bool.
+			Table_Name = The string name of the table.
+			ROW = The row in the table.
+			CELL = The cell in the table.
+			DATA = The data to set the cell to, must match the type given.
+			
+			
+		~table get_TYPE [Table_Name] [ROW] [CELL] 
+		~table bget_TYPE [Table_ID] [ROW] [CELL]
+			
+			Returns the data from the given cell in the format specified by _TYPE. 
+			
+		
+		~table push_TYPE [Table_Name] [ROW] [DATA]
+		~table bpush_TYPE [Table_ID] [ROW] [DATA]
+		
+			Pushes a data chunk onto the given row.
+			
+			
+		~table push_pop_TYPE [Table_Name] [DATA]
+		
+			Pushes a data chunk onto the current row then pops it.
+
+			
+		~table pop_push_TYPE [Table_Name] [DATA]
+		
+			Pops the current row then pushes the data onto it.
+
+		
+		~table copy_cell [From_Table] [From_Row] [From_Cell] [To_Table] [To_Row] [To_Cell]
+		~table bcopy_cell [From_Table_ID] [From_Row] [From_Cell] [To_Table_ID] [To_Row] [To_Cell]
+			
+			Copies from given cell, into given cell.
+			
+			
+		~table copy_row [From_Table] [From_Row] [To_Table] [To_Row]
+		~table bcopy_row [From_Table_ID] [From_Row] [To_Table_ID] [To_Row]
+			
+			Copies from given row, into given row after wiping the receiving row.
+			
+			
+		~table copy_table [From_Table] [To_Table]
+		~table bcopy_table [From_Table_ID] [To_Table_ID]
+			
+			Copies from given table, into given table after wiping the receiving table.
+			
+			
+			
+		~table overlay_row [From_Table] [From_Row] [To_Table] [To_Row] [To_Index]
+		
+			Copies the first bit of each cell in a given row into the given row at the bit index indicated.
+			
+			table overlay_row Table_0 R0 Table_1 R2 1
+			R0 [4] [3] [5] [7]
+			R1 [2] [6] [8] [5]
+			---->
+			R0 [4] [3] [5] [7]
+			R1 [2 4] [6 3] [8 5] [5 7]
+			
+		~table copy_rows [From_Table_Name] [Start_Row] [End_Row] [To_Table_Name] [To_Table_Offset_Row]
+		~table bcopy_rows [From_Table_ID] [Start_Row] [End_Row] [To_Table_ID] [To_Table_Offset_Row]
+		
+			Copies a set of rows starting at [Start_Row] to [End_Row] from [From_Table_Name] into 
+		  [To_Table_Name] with an offset of [To_Table_Offset_Row].
+			
+			Example: table copy_rows Origin_Table 5 10 Receiving_Table 100
+			
+			Rows 5-10 are copied from Origin_Table into Receiving_Table rows 100 through 105.
+			
+			~From -------> ~To
+			Origin_Table   Receiving_Table
+			[5]  "One"     [100] "One"
+			[6]  "Two"     [101] "Two"
+			[7]  "Three"   [102] "Three"
+			[8]  "Four"    [103] "Four"
+			[9]  "Five"    [104] "Five"
+			[10] "Six"     [105] "Six"
+		
+		
+		~table translate_row [From_Table] [Row_To_Translate] [To_Table] [Row_Offset]
+		
+			Reads each cell from a given row into another table, but each cell is assigned a row starting at 
+		  the offset.
+		   
+			Example: table translate_row From 5 To 100
+		  
+			~From ---------------------> ~To
+			Origin_Table   		          Receiving_Table
+			[5] 0"One" 1"Two" 2"Three"    [100] "One"
+			                              [101] "Two"
+			                              [102] "Three"
+			
+		
+		~table shift_column [Table_Name] [Column]
+		~table bshift_column [Table_ID] [Column]
+		
+			Shift a given columns data one column to the right in a given table erasing the old data and 
+		  overwriting the destination. 
+			
+			table shift_column ex_Table 0
+			~Before ---------> ~After
+			Ex_Table   
+			[5]  {0}"One"     [5] {0}"" {1}"One"
+			[6]  {0}"Two"     [6] {0}"" {1}"Two"
+			[7]  {0}"Three"   [7] {0}"" {1}"Three"
+		  
+		
+		~table shift_all_rows [Table_Name] [Column]
+		~table bshift_all_rows [Table_ID] [Column]
+		
+			Shifts all of the rows in the table towards the end of the table starting at the given index.
+		
+			table shift_all_rows ex_Table 0
+			~Before ---------> ~After
+			Ex_Table   
+			[5]  {0}"One"     [5] {0}""
+			[6]  {0}"Two"     [6] {0}"One"
+			[7]  {0}"Three"   [7] {0}"Two"
+		
+		~table rename [Table_Name] [New_Name]
+		~table brename [Table_ID] [New_Name]
+		
+			Renames the given table.
+			
+			
+		~table new_1D [Table_Name]
+		
+			Creates a table with the given string name.
+			
+			
+		~table new_CMD [Table_Name]
+		
+			Creates a new command table with the given table name. After being created the new table
+		  is registered with the command script registry.
+			
+		
+		~table delete [Table_Name]
+		~table bdelete [Table_ID]
+		
+			Deletes the given table.
+			
+			
+		~table get_ID [Table_Name]
+		
+			Returns the integer ID associated with the Table_Name.
+			
+			
+		~table get_Name [Table_ID]
+		
+			Returns the given string Table_Name.
+			
+		~table reset [Table_Name]
+		~table breset [Table_ID]
+		
+			Resets the given table.
+			
+		
+	//==--  Command Table Commands
+		
+		~eval_CMD_table [Table_Name]
+		~beval_CMD_table [Table_ID]
+		
+			Evaluates a table containing a command script.
+		
+		
+		~load_CMD_table [FILE_NAME]
+		
+			Loads a given file, do not include the .ntxs extension. After loading a CMD_Table is created
+		  with the filename that will hold the script.
+			
+		~scrs 
+		
+			-Saves a CMD script
+		
+		~scrl
+		
+			-Loads a CMD script
+	
+	
+	
+	//===---------------------+
+	//==--  Sandbox Commands
+	//===---------------------+
+		
+		~forge
+			
+			Brings up a primitive editor for the Sandbox.
+		
+		~srealm [Name]
+			
+			Saves the current realm.
+			
+			
+		~lrealm [Name]
+		
+			Loads the given realm.
+		
+		
+		~set_name [Name]
+		
+			Sets the Sandbox name.
+		     
+		
+		
+	     //===-----------------------------+
+		//==--  Creation and Destruction
+		//===-----------------------------+
+     
+		
+		~create_construct [Name] [Type]
+		
+			Creates a construct with the given name and type.
+				Types:
+					~1 = 1 Dimensional MMap Construct
+		
+		
+		~create_input [Dimension]
+		
+			Creates an input with the given dimension. Inputs can be directly accessed through .sand.Inputs[INDEX].
+		
+		
+		~create_output [Dimension]
+		
+			Creates an output with the given dimension. Outputs can be directly accessed through .sand.Outputs[INDEX].
+		
+		
+		~create_connection [From] [From_Index] [To] [To_Index]
+		
+			Creates a connection between two registered objects with a pipe. The pipes link a row from the first table to the next.
+		
+		
+		
+	     //===------------------+
+	     //==--  Manipulations
+	     //===------------------+
+          
+		
+		~move_Construct [Register_ID] [X] [Y]
+		
+			Moves a construct to the given (x, y).
+			
+			
+		~build [CONSTRUCT_ID] [BUILD_TYPE]
+		
+			Builds a given construct in the way specified by BUILD_TYPE.
+			
+			BUILD_TYPE:
+				
+				0: Builds without reinforcing the nodes.
+				1: Builds and reinforces the nodes.
+			
+			Example: "build 2 0" will build the inputs of construct #2 without reinforcing the nodes.
+			
+			
+		~eval [CONSTRUCT_ID] [EVAL_TYPE]
+		
+			Evaluates a given construct in the way specified by EVAL_TYPE.
+			
+			EVAL_TYPE:
+				
+				0: Evals without RC.
+				1: Evals with the RC.
+				
+			Example: "eval 2 1" will evaluate the inputs taking the RC values into account.
+
+			
+		~pipe_overwrite [PIPE_ID]
+
+			Tells a pipe to transfer data from its input to its output. 
+			
+				->Start
+				   INPUT_ROW[CELL_0: "New_Data"] ---PIPE---> TARGET_ROW[CELL_0: "Old_Data"]
+				   
+				->Resets the target row.
+				   INPUT_ROW[CELL_0: "New_Data"] ---PIPE---> TARGET_ROW[CELL_0: ""]
+				   
+				->Copies the row from the input to the target.
+				   INPUT_ROW[CELL_0: "New_Data"] ---PIPE---> TARGET_ROW[CELL_0: "New_Data"]
+			
+			
+		~pipe_append [PIPE_ID]
+
+			Tells a pipe to transfer data from its input to its output. 
+			
+				->Start
+				   INPUT_ROW[CELL_0: "New_Data"] ---PIPE---> TARGET_ROW[CELL_0: "Old_Data"]
+				   
+				->Appends the row from the input row to the target row.
+				   INPUT_ROW[CELL_0: "New_Data"] ---PIPE---> TARGET_ROW[CELL_0: "Old_Data"] [CELL_1: "New_Data"]
+		~po [PIPE_ID]
+		
+			Short for pipe_overwrite [PIPE_ID]
+
+		~pa [PIPE_ID]
+		
+			Short for pipe_append [PIPE_ID]
+
+				
+	     //===----------+
+	     //==--  Input
+	     //===----------+
+		
+		
+		~set_input [INPUT_ID] [INPUT_STRING]
+			
+			Sets the given input to the given string.
+		
+		
+		~in [INPUT_ID] [INPUT_STRING]
+			
+			Sets the given input to the given string.
+		
+		
+		
+	     //===-----------+
+	     //==--  Output
+	     //===-----------+
+          
+		
+		~output_raw
+		
+			Outputs a rough diagram of the current networks.
+			
+	
+		~output_registry
+		
+			Outputs the registered objects.
+	
+	
+		~output_pipes
+		
+			Outputs the data pipes information.
+	
+	
+		~output_inputs
+		
+			Outputs the inputs and their data.
+			
+			
+		~output_outputs
+		
+			Outputs the outputs and their data.
+	
+		
